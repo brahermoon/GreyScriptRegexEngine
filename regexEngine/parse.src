@@ -1,0 +1,96 @@
+last = function(stack)
+    return stack[stack.len -1]
+end function 
+
+parse = function(re)
+    stack = [[]]
+    i = 0
+
+    while i < re.len 
+        next = re[i]
+        if next == "." then
+            wildcardObject = {
+                "type": "wildcard",
+                "quantifier": "exactly one"
+            }
+            last(stack).push(wildcardObject)
+            i = i + 1
+            continue
+        end if
+        if next == "?" then
+            lastElement = last(last(stack))
+            if not lastElement or lastElement.quantifier != "exactly one" then
+                exit("parser : Quantifier must follow an unterminated element or group")
+            end if
+            lastElement.quantifier = "zeroOrOne"
+            i = i + 1
+            continue
+        end if
+        if next == "*" then
+            lastElement = last(last(stack))
+            if not lastElement or lastElement.quantifier != "exactly one" then
+                exit("parser : Quantifier must follow an unterminated element or group")
+            end if
+            lastElement.quantifier = "zeroOrMore"
+            i = i + 1
+            continue
+        end if
+        if next == "+" then
+            lastElement = last(last(stack))
+            if not lastElement or lastElement.quantifier != "exactly one" then
+                exit("parser : Quantifier must follow an unterminated element or group")
+            end if
+            ZeroOrMoreCopy = {"type": lastElement.type,"quantifier": "zeroOrMore"}
+            last(stack).push(ZeroOrMoreCopy)
+            i = i + 1
+            continue
+        end if
+        if next == "(" then
+            stack.push([])
+            i = i + 1
+            continue
+        end if
+        if next == ")" then
+            if stack.len <= 1 then
+                exit("parser : No group to close at index " +i+"")
+            end if
+            states = stack.pop()
+            last(stack).push({
+                "type":"groupElement",
+                "states": states,
+                "quantifier": "exactly one"
+            })
+            i = i + 1
+            continue
+        end if
+        if next == "\\" then
+            if i+1 >= re.len then
+                exit("parser : Bad escape character at index " +i+"")
+            end if
+            last(stack).push({
+                "type":"element",
+                "value": re[i+1],
+                "quantifier": "exactly one"
+            })
+            i = i + 2
+            continue
+        end if
+
+        last(stack).push({
+            "type":"element",
+            "value": next,
+            "quantifier": "exactly one"
+        })
+        i   = i + 1
+        continue
+    end while
+    if stack.len != 1 then
+        exit("parser : Unmatched groups in regular expression")
+    else 
+        return stack[0]
+    end if
+end function
+
+print(parse("a?(b.*c)+d"))
+
+//im video @ 10:50
