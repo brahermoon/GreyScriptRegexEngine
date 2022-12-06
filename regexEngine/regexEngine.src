@@ -1,0 +1,144 @@
+stateMashineStringAtIndex= function(state,str_,index)
+    if index >= str_.len then
+        return [false,0]
+    end if
+    if state.type == "wildcard" then
+        return [true,1]
+    end if
+    if state.type == "element" then
+        match = state.value == str_[index]
+        quantity = 0
+        if match == true then
+            quantity = 1
+        end if
+        return [match,quantity]
+    end if
+    if state.type == "groupElement" then
+        return test(state.states,slice(str_,index))
+    end if
+    exit("stateMashineStringAtIndex: Unsupported element type")
+end function
+
+
+
+test = function(states,str_)
+    queue = slice(states,0)
+    i = 0
+    backTrackStack = []
+    currentState = queue.pull
+    backtrack = function()
+        queue = [currentState] + queue
+        couldBacktrack = false
+        while backTrackStack.len
+            object = backTrackStack.pop()
+            isBackTrackable = object.isBackTrackable
+            state = object.state
+            consumptions = object.consumptions
+    
+            if isBackTrackable then
+                if consumptions.len == 0 then
+                    queue = [state] + queue
+                    continue
+                end if 
+                n = consumptions.pop()
+                i = i - n
+                backTrackStack.push({
+                    "isBackTrackable": isBackTrackable,
+                    "state":state,
+                    "consumptions":consumptions
+                })
+                couldBacktrack = true
+                break
+            end if 
+            queue = [state] + queue
+            for n in consumptions
+                i = i - n
+            end for 
+            if couldBacktrack then
+                currenState = queue.pull()
+            end if
+            return couldBacktrack
+        end while
+    end function
+        
+    while currentState 
+        if currentState.quantifier == "exactly one" then
+            result = stateMashineStringAtIndex(currentState,str_,i)
+            isMatch = result[0]
+            consumed = result[1]
+            if not isMatch then
+                indexBeforeBacktrack = i
+                couldBacktrack = backtrack()
+                if not couldBacktrack then
+                    return [false,indexBeforeBacktrack]
+                end if
+                continue
+            end if
+        backTrackStack.push({
+            "isBackTrackable":false,
+            "state":currentState,
+            "consumptions": [consumed]
+        })
+            i = i + consumed
+            currentState = queue.pull
+            continue
+        end if
+        if currentState.quantifier == "zeroOrOne" then
+            if i >= str_.len then
+                backTrackStack.push({
+                    "isBackTrackable":false,
+                    "state":currentState,
+                    "consumptions": [0]
+                })
+                currentState = queue.pull
+                continue
+            end if
+            result = stateMashineStringAtIndex(currentState,str_,i)
+            isMatch = result[0]
+            consumed = result[1]
+            backTrackStack.push({
+                "isBackTrackable":isMatch && consumed > 0,
+                "state":currentState,
+                "consumptions": [consumed]
+            })
+            i = i + consumed
+            currentState = queue.pull
+            continue
+        end if
+        if currentState.quantifier == "zeroOrMore" then
+            backTrackState={
+                "isBackTrackable":true,
+                "state":currentState,
+                "consumptions": []
+            }
+            while true
+                if i >= str_.len then
+                    if backTrackState.consumptions.len == 0 then
+                        backtrackState.consumptions.push(0)
+                        backTrackState.isBackTrackable = false
+                    end if
+                    backTrackStack.push(backTrackState)
+                    currentState = queue.pull
+                    break
+                end if
+                result = stateMashineStringAtIndex(currentState,str_,i)
+                isMatch = result[0]
+                consumed = result[1]
+                if not isMatch or consumed == 0 then
+                    if backTrackState.consumptions.len == 0 then
+                        backtrackState.consumptions.push(0)
+                        backTrackState.isBackTrackable = false
+                    end if
+                    backTrackStack.push(backTrackState)
+                    currentState = queue.pull
+                    break
+                end if
+            backTrackState.consumptions.push(consumed)
+                i = i + consumed
+            end while
+            continue 
+        end if
+        exit("test : Unsupported operation")
+    end while
+    return [true,i]
+end function

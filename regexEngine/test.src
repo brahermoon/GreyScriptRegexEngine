@@ -1,0 +1,8 @@
+import_code("parse.src":"parse.src")
+import_code("regexEngine.src":"regexEngine.src")
+
+regex = "a.*c"
+states = parse(regex)
+exampleString = "acc"
+result = test(states, exampleString)
+print(result)

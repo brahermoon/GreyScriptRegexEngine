@@ -91,6 +91,6 @@ parse = function(re)
     end if
 end function
 
-print(parse("a?(b.*c)+d"))
+//print(parse("a?(b.*c)+d"))
 
 //im video @ 10:50
